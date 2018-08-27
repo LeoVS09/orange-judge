@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"orange-judge/src/log"
+	"orange-judge/log"
 	"sync/atomic"
 	"time"
 )
