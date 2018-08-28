@@ -37,9 +37,13 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save", saveHandler)
+
 	var result = resultRunProgram{}
 	http.HandleFunc("/run", runHandler(&result))
 	http.HandleFunc("/run/result/", resultHandler(&result))
+
+	http.HandleFunc("/oar", oarHandler)
+	http.HandleFunc("/oar/result", oarResultHandler)
 
 	log.LogFmt("Serving at localhost:%v...", configData.Port)
 	err = http.ListenAndServe(fmt.Sprintf(":%v", configData.Port), nil)
@@ -142,4 +146,35 @@ func runHandler(result *resultRunProgram) func(w http.ResponseWriter, r *http.Re
 
 		http.Redirect(w, r, "/run/result/"+resultId, http.StatusFound)
 	}
+}
+
+const input = "input.txt"
+const output = "output.txt"
+const errorFile = "error.txt"
+
+func oarHandler(w http.ResponseWriter, r *http.Request) {
+	log.DebugFmt("run oar handler request: %s", r.URL.Path)
+
+	const fileName = "test-uploaded-for-oar"
+
+	var body = r.FormValue("body")
+
+	var err = saveFile(fileName+".cpp", []byte(body))
+	log.Panic("Error save uploaded file", err)
+
+	_, err = executer.RunFromSourceWithOAR(fileName, input, output, errorFile)
+	log.Panic("Error when compile and run test program", err)
+
+	http.Redirect(w, r, "/oar/result", http.StatusFound)
+}
+
+func oarResultHandler(w http.ResponseWriter, r *http.Request) {
+	var inputResult, err = loadFile(input)
+	log.Panic("Cannot read input file", err)
+	outputResult, err := loadFile(output)
+	log.Panic("Cannot read output file", err)
+	errorResult, err := loadFile(errorFile)
+	log.Panic("Cannot read error file", err)
+
+	fmt.Fprintf(w, "INPUT: %s\nOUPUT: %s\nERROR :%s", inputResult, outputResult, errorResult)
 }

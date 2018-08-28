@@ -2,6 +2,7 @@ FROM golang:1.11-stretch
 
 WORKDIR /go/src/orange-judge
 
+RUN go get github.com/fatih/color
 ADD . .
 RUN go get -v ./...
 
