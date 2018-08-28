@@ -1,10 +1,8 @@
 #include <iostream>
-//#include <cstdlib> // для system
 using namespace std;
 
-int main() 
-{ 
-    cout << "Test sucessful" << endl;
-    //system("pause"); // Только для тех, у кого MS Visual Studio
-    return 0; 
+int main()
+{
+    cout << "Test successful" << endl;
+    return 0;
 }

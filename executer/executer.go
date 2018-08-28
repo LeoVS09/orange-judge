@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"orange-judge/log"
 	"os/exec"
+	"runtime"
 )
 
 func Compile(inputFile string, outputFile string) (*bytes.Buffer, error) {
@@ -19,7 +20,13 @@ func CompileFrom(inputFileName string) (*bytes.Buffer, error) {
 }
 
 func Run(inputFileName string) (*bytes.Buffer, error) {
-	cmd := exec.Command("./" + inputFileName + ".exe")
+	var name = "./"
+	if runtime.GOOS == "windows" {
+		name += inputFileName + ".exe"
+	} else {
+		name += inputFileName
+	}
+	cmd := exec.Command(name)
 	//cmd.Stdin = strings.NewReader("some input")
 	var out bytes.Buffer
 	cmd.Stdout = &out

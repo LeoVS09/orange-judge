@@ -1,0 +1,8 @@
+server.exe
+test.cpp
+test.exe
+test-uploaded.cpp
+test-uploaded.exe
+/.idea
+/.git
+/.gitignore

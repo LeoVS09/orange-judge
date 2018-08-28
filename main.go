@@ -65,6 +65,7 @@ func configureLogging(debug bool, test bool) func() {
 	return func() {
 		if debug == true {
 			log.VerboseAll()
+			log.Log("Debug mode enabled")
 		} else {
 			log.VerboseProduction()
 		}
