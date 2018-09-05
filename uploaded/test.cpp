@@ -3,9 +3,8 @@ using namespace std;
 
 int main()
 {
-    string value;
-    cin >> value;
-    cout << "TEST" << endl;
-    cout << value << endl;
+    int a, b, c;
+    cin >> a >> b >> c;
+    cout << c << " " << b << " " << a << endl;
     return 0;
 }

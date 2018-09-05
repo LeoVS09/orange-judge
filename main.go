@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"math/rand"
 	"orange-judge/configuration"
 	"orange-judge/executer"
 	"orange-judge/log"
 	"orange-judge/router"
+	"strings"
 	"time"
 )
 
@@ -30,8 +32,14 @@ func main() {
 	log.Check("Configuration error:", err)
 
 	if *isNeedTestCompiler == true {
-		err = testCompiler()
+		isTestSuccessful, err := testCompiler()
 		log.Check("Error when compile and run test program", err)
+		if isTestSuccessful {
+			log.Log("compiler test: ok")
+		} else {
+			log.Log("compiler test: fatal")
+			panic(errors.New("Test program return not expected result"))
+		}
 	}
 
 	if *isDebug == true {
@@ -66,8 +74,26 @@ func configureLogging(env configuration.Environment) {
 	log.VerboseOnlyErrors()
 }
 
-func testCompiler() error {
+func testCompiler() (bool, error) {
 	log.Debug("Start test compiler environment...")
-	var _, err = executer.TestRunFromSource("test")
-	return err
+	const input = "1 2 3"
+	const output = "3 2 1"
+	var out, err = executer.TestRunFromSource(input, "test")
+	if err != nil {
+		return false, err
+	}
+
+	var result = removeUnnecessarySymbols(out.String())
+	if result != output {
+		return false, nil
+	}
+	return true, nil
+}
+
+func removeUnnecessarySymbols(data string) string {
+	var removeSymbols = []string{"\n", "\t", "\r"}
+	for _, symbol := range removeSymbols {
+		data = strings.Replace(data, symbol, "", -1)
+	}
+	return data
 }

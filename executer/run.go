@@ -30,8 +30,8 @@ func Run(inputFileName string, in *io.Reader) (*bytes.Buffer, error) {
 	return &out, err
 }
 
-func testRun(inputFileName string) (*bytes.Buffer, error) {
-	var reader = *strings.NewReader("stdin input read and write stdout")
+func testRun(input, inputFileName string) (*bytes.Buffer, error) {
+	var reader = *strings.NewReader(input)
 	var result io.Reader = &reader
 	return Run(inputFileName, &result)
 }

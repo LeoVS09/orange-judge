@@ -12,9 +12,9 @@ import (
 const compiledFilesDir = "compiled"
 const uploadedFilesDir = "uploaded"
 
-func TestRunFromSource(inputFileName string) (*bytes.Buffer, error) {
+func TestRunFromSource(input, inputFileName string) (*bytes.Buffer, error) {
 	return compileAndRun(inputFileName, func() (*bytes.Buffer, error) {
-		return testRun(inputFileName)
+		return testRun(input, inputFileName)
 	})
 }
 
