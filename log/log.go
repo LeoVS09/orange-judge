@@ -5,6 +5,7 @@ import (
 	"github.com/fatih/color"
 	baselog "log"
 	"os"
+	"runtime"
 )
 
 var (
@@ -14,6 +15,23 @@ var (
 	yellow = color.New(color.FgHiYellow).SprintfFunc()
 	green  = color.New(color.FgGreen).SprintfFunc()
 )
+
+var standard = logger{
+	warning: yellow,
+	err:     red,
+	log:     green,
+	info:    cyan,
+	debug:   blue,
+	core:    baselog.New(os.Stdout, "", baselog.LstdFlags),
+}
+
+func init() {
+	if runtime.GOOS == "windows" {
+		SetNoColoring()
+	}
+
+	VerboseAll()
+}
 
 type logger struct {
 	warning     func(format string, a ...interface{}) string
@@ -100,6 +118,7 @@ func createAsyncStdout() *AsyncStdout {
 		stack: out,
 	}
 }
+
 func (l *logger) UseAsync() {
 	l.core.SetOutput(createAsyncStdout())
 }
@@ -128,13 +147,13 @@ func (l *logger) Error(s string, v ...interface{}) {
 
 func (l *logger) Warning(s string) {
 	if l.showWarning {
-		baselog.Println(l.warning(s))
+		l.core.Println(l.warning(s))
 	}
 }
 
 func (l *logger) WarningFmt(s string, v ...interface{}) {
 	if l.showWarning {
-		baselog.Println(l.warning(fmt.Sprintf(s, v...)))
+		l.core.Println(l.warning(fmt.Sprintf(s, v...)))
 	}
 }
 
@@ -186,15 +205,6 @@ func notColored(format string, a ...interface{}) string {
 
 // ------------------ STANDARD LOGGER ----------------------------
 
-var standard = logger{
-	warning: yellow,
-	err:     red,
-	log:     green,
-	info:    cyan,
-	debug:   blue,
-	core:    baselog.New(os.Stdout, "", baselog.LstdFlags),
-}
-
 func VerboseAll() {
 	standard.VerboseAll()
 }
@@ -211,7 +221,13 @@ func VerboseProduction() {
 	standard.VerboseProduction()
 }
 
+// This can work unstable, use on you at you own risk
+// Some logs can be logged not on real order
 func UseAsync() {
+	fmt.Println(standard.warning("------------Logger------------"))
+	fmt.Println(standard.warning("Now using async logging."))
+	fmt.Println(standard.warning("This in beta! Use it at you own risk"))
+	fmt.Println(standard.warning("Some logs can be logged not in real order"))
 	standard.UseAsync()
 }
 

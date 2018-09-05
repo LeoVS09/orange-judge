@@ -34,11 +34,41 @@
     }
 </style>
 <body>
-    <h1>Work in progress...</h1>
+    <h1>Orange judge<sup>alpha</sup></h1>
     <h2>Compile and run source file</h2>
-    <form action="/run" method="post">
-        <textarea name="body" placeholder="Paste source file"></textarea>
-        <input type="submit" value="Upload">
-    </form>
+
+    <textarea class="upload--text" placeholder="Paste text source file"></textarea>
+    <button class="upload--text">Upload</button>
+    <p class="results-program"></p>
 </body>
+
+<script type="text/javascript">
+    const textElement = document.querySelector(".upload--text");
+    const button = document.querySelector(".upload--button");
+    const resultText = document.querySelector(".result-program");
+
+    button.onclick = () => {
+        const body = textElement.value;
+        resultText.innerText = "Start uploading...";
+
+        fetch("/run", {
+            method: "POST",
+            body
+        }).then(response => {
+            console.log(response.status, response.statusText);
+            return response.blob();
+        }).then(blob => {
+            const reader = new FileReader();
+            const result = new Promise(resolve =>
+                reader.addEventListener("loaded", () => {
+                    resolve(reader.result)
+                })
+            );
+            reader.readAsText(blob);
+            return result;
+        }).then(text => {
+            resultText.innerText = text;
+        })
+    }
+</script>
 </html>
