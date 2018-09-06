@@ -59,6 +59,7 @@ func GetTestsList() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.DebugFmt("List of tests names was read")
 
 	var testListString = utils.BytesToString(testListData)
 

@@ -8,7 +8,7 @@ import (
 	"orange-judge/executer"
 	"orange-judge/log"
 	"orange-judge/router"
-	"strings"
+	"orange-judge/utils"
 	"time"
 )
 
@@ -83,17 +83,9 @@ func testCompiler() (bool, error) {
 		return false, err
 	}
 
-	var result = removeUnnecessarySymbols(out.String())
+	var result = utils.RemoveUnnecessarySymbols(out.String())
 	if result != output {
 		return false, nil
 	}
 	return true, nil
-}
-
-func removeUnnecessarySymbols(data string) string {
-	var removeSymbols = []string{"\n", "\t", "\r"}
-	for _, symbol := range removeSymbols {
-		data = strings.Replace(data, symbol, "", -1)
-	}
-	return data
 }

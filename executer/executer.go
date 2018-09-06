@@ -5,6 +5,7 @@ import (
 	"io"
 	"orange-judge/fileHandling"
 	"orange-judge/log"
+	"orange-judge/utils"
 	"strings"
 )
 
@@ -41,7 +42,7 @@ func RunAndTest(inputFileName string, input string, outputResult string) (bool, 
 		return false, err
 	}
 
-	var output = outputData.String()
+	var output = utils.RemoveUnnecessarySymbols(outputData.String())
 	var result = output == outputResult
 	log.DebugFmt("Result of compare test (%s) with real result (%s): %v", outputData, outputResult, result)
 	return result, nil
@@ -60,6 +61,7 @@ func CompileAndTest(fileName string) (bool, int, error) {
 		log.DebugFmt("Cannot load list of tests\n%s", err.Error())
 		return false, 0, err
 	}
+	log.DebugFmt("List of tests:\n%s", testNames)
 
 	for i, testName := range testNames {
 		testData, err := fileHandling.GetTest(testName)
@@ -67,6 +69,7 @@ func CompileAndTest(fileName string) (bool, int, error) {
 			log.DebugFmt("Error get test: %s", testName)
 			return false, 0, err
 		}
+		log.DebugFmt("Test %v:\n%v", i, testData)
 
 		var input, output = testData[0], testData[1]
 		resultOfTest, err := RunAndTest(fileName, input, output)
@@ -74,6 +77,7 @@ func CompileAndTest(fileName string) (bool, int, error) {
 			log.DebugFmt("Error when test %s, on test:%s", fileName, testName)
 			return false, 0, err
 		}
+		log.DebugFmt("Result of test %v: %v", i, resultOfTest)
 
 		if resultOfTest == false {
 			return false, i, nil

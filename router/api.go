@@ -2,6 +2,7 @@ package router
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"orange-judge/executer"
@@ -53,6 +54,17 @@ func resultHandler(result *resultRunProgram) func(w http.ResponseWriter, r *http
 	}
 }
 
+type runProgramRequestBody struct {
+	ProblemId string `json:"problemId"`
+	Code      string `json:"code"`
+}
+
+type runProgramResponseBody struct {
+	ProblemId            string `json:"problemId"`
+	IsAllTestsSuccessful bool   `json:"isAllTestsSuccessful"`
+	FailedTest           int    `json:"failedTest"`
+}
+
 func runHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -68,22 +80,44 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.DebugFmt("run handler request: %s", r.URL.Path)
 
-	var body = r.FormValue("body")
-	var fileName, err = fileHandling.SaveSourceFile([]byte(body))
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	var buffer = new(bytes.Buffer)
+	buffer.ReadFrom(r.Body)
+	var body = buffer.String()
+	log.DebugFmt("Request data: %s", body)
+
+	var requestBody runProgramRequestBody
+	var err = json.Unmarshal([]byte(body), &requestBody)
+	log.Panic("Cannot parse request data", err)
+
+	log.DebugFmt("Code of program:\n%s", requestBody.Code)
+
+	fileName, err := fileHandling.SaveSourceFile([]byte(requestBody.Code))
 	log.Panic("Error save uploaded file", err)
 
 	isTestsSuccessful, testNumber, err := executer.CompileAndTest(fileName)
 	log.Panic("Error when compile, run and test program", err)
 
-	var result = ""
-	defer fmt.Fprintf(w, "%s", result)
+	var result = runProgramResponseBody{
+		ProblemId:            requestBody.ProblemId,
+		IsAllTestsSuccessful: false,
+		FailedTest:           0,
+	}
+	defer func() {
+		log.DebugFmt("Response to client: %s", result)
+		responseBody, err := json.Marshal(result)
+		log.Panic("Cannot marshal result for response", err)
+
+		fmt.Fprintf(w, "%s", responseBody)
+	}()
 
 	if isTestsSuccessful {
-		result = "All tests successful"
+		result.IsAllTestsSuccessful = true
 		return
 	}
 
-	result = fmt.Sprintf("Test %v failed", testNumber)
+	result.FailedTest = testNumber
 }
 
 func testUploadHandler(w http.ResponseWriter, r *http.Request) {
