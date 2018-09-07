@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"orange-judge/executer"
 	"orange-judge/fileHandling"
@@ -65,6 +66,15 @@ type runProgramResponseBody struct {
 	FailedTest           int    `json:"failedTest"`
 }
 
+func requestBodyParse(requestBody io.ReadCloser, v interface{}) error {
+	var buffer = new(bytes.Buffer)
+	buffer.ReadFrom(requestBody)
+	var body = buffer.String()
+	log.DebugFmt("Request data: %s", body)
+
+	return json.Unmarshal([]byte(body), v)
+}
+
 func runHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -82,13 +92,8 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	var buffer = new(bytes.Buffer)
-	buffer.ReadFrom(r.Body)
-	var body = buffer.String()
-	log.DebugFmt("Request data: %s", body)
-
 	var requestBody runProgramRequestBody
-	var err = json.Unmarshal([]byte(body), &requestBody)
+	var err = requestBodyParse(r.Body, &requestBody)
 	log.Panic("Cannot parse request data", err)
 
 	log.DebugFmt("Code of program:\n%s", requestBody.Code)
@@ -120,15 +125,52 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	result.FailedTest = testNumber
 }
 
-func testUploadHandler(w http.ResponseWriter, r *http.Request) {
-	log.DebugFmt("run handler request: %s", r.URL.Path)
-	var body = r.FormValue("body")
+type testUploadRequestBody struct {
+	Text string `json:"text"`
+}
 
-	var name, err = fileHandling.SaveTestFile([]byte(body))
+type testUploadResponseBody struct {
+	IsSuccessfulAdded bool `json:"isSuccessfulAdded"`
+}
+
+func testUploadHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			var err, ok = r.(error)
+			if ok == false {
+				http.Error(w, "Unexpected error", http.StatusInternalServerError)
+				return
+			}
+
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}()
+	log.Debug("New test upload start")
+
+	var result = testUploadResponseBody{
+		IsSuccessfulAdded: false,
+	}
+	defer func() {
+		log.DebugFmt("Response to client: %s", result)
+		responseBody, err := json.Marshal(result)
+		log.Panic("Cannot marshal result for response", err)
+
+		fmt.Fprintf(w, "%s", responseBody)
+	}()
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	var requestBody testUploadRequestBody
+	var err = requestBodyParse(r.Body, &requestBody)
+	log.Panic("Cannot parse request data", err)
+
+	name, err := fileHandling.SaveTestFile([]byte(requestBody.Text))
 	log.Panic("Error save test file", err)
 
 	err = fileHandling.AddTestToList(name)
 	log.Panic("Cannot add test to list", err)
+
+	result.IsSuccessfulAdded = true
 }
 
 const input = "input.txt"

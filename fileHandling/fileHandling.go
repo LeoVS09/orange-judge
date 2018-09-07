@@ -63,11 +63,28 @@ func GetTestsList() ([]string, error) {
 
 	var testListString = utils.BytesToString(testListData)
 
-	return strings.Split(testListString, "\n"), nil
+	result, err := strings.Split(testListString, "\n"), nil
+	if err != nil {
+		return nil, err
+	}
+
+	log.DebugFmt("List of tests %v", result)
+	log.DebugFmt("List of tests length: %v", len(result))
+	if len(result) == 1 && (result[0] == "" || result[0] == "\n" || result[0] == "\t" || result[0] == "\r" || result[0] == "\t\r") {
+		log.Debug("Return default value")
+		return make([]string, 0), nil
+	}
+	if len(result) > 0 {
+		log.DebugFmt("First test length: %v", len(result[0]))
+	}
+
+	return result, nil
 }
 
 func SaveTestList(list []string) error {
+	log.DebugFmt("List of test length: %v", len(list))
 	var data = strings.Join(list, "\n")
+	log.DebugFmt("List of test value: %v", data)
 	return SaveFile(path.Join(testFilesDir, testListFileName), []byte(data))
 }
 
@@ -77,9 +94,11 @@ func AddTestToList(name string) error {
 		log.DebugFmt("Cannot load file with list of tests\n%s", err.Error())
 		return err
 	}
+	log.DebugFmt("List of test length: %v", len(list))
 
 	var resultList = append(list, name)
 
+	log.DebugFmt("List of test length: %v", len(resultList))
 	err = SaveTestList(resultList)
 	if err != nil {
 		log.DebugFmt("Cannot save file with list of tests\n%s", err.Error())
