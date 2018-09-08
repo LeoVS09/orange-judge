@@ -1,3 +1,9 @@
 {
-  "port": 3010
+  "port": 3010,
+  "testListFileName": "testsList.txt",
+  "directories": {
+    "uploaded": "uploaded",
+    "compiled": "compiled",
+    "test": "tests"
+  }
 }

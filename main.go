@@ -6,9 +6,11 @@ import (
 	"math/rand"
 	"orange-judge/configuration"
 	"orange-judge/executer"
+	"orange-judge/fileHandling"
 	"orange-judge/log"
 	"orange-judge/router"
 	"orange-judge/utils"
+	"os"
 	"time"
 )
 
@@ -27,9 +29,12 @@ func main() {
 		configureLogging(configuration.Testing)
 	}
 
-	configStore := configuration.Read(*configName, configReadDelay)
-	config, err := configuration.ToConfigData(configStore)
+	configuration.Read(*configName, configReadDelay)
+	config, err := configuration.GetConfigData()
 	log.Check("Configuration error:", err)
+
+	err = createOrClearWorkFolders(config)
+	log.Check("Cannot clear work environment", err)
 
 	if *isNeedTestCompiler == true {
 		isTestSuccessful, err := testCompiler()
@@ -74,11 +79,54 @@ func configureLogging(env configuration.Environment) {
 	log.VerboseOnlyErrors()
 }
 
+func createOrClearWorkFolders(config *configuration.ConfigFile) error {
+	var names = [...]string{config.Directories.Compiled, config.Directories.Uploaded, config.Directories.Test}
+	for _, name := range names {
+		var err = fileHandling.CreateOrClearFolder(name)
+		if err != nil {
+			log.DebugFmt("Cannot create or clear folder: %s", name)
+			return err
+		}
+	}
+
+	if fileHandling.IsExist(config.TestListFileName) {
+		var err = fileHandling.ClearTestList()
+		if err != nil {
+			log.DebugFmt("Cannot clear tests list file %s", config.TestListFileName)
+			return err
+		}
+		return nil
+	}
+
+	var f, err = os.Create(config.TestListFileName)
+	if err != nil {
+		log.DebugFmt("Cannot create tests list file %s", config.TestListFileName)
+		return err
+	}
+
+	f.Close()
+	return nil
+}
+
 func testCompiler() (bool, error) {
 	log.Debug("Start test compiler environment...")
 	const input = "1 2 3"
 	const output = "3 2 1"
-	var out, err = executer.TestRunFromSource(input, "test")
+	const fileName = "test.cpp"
+
+	var testSourceFile, err = fileHandling.LoadFile(fileName)
+	if err != nil {
+		log.DebugFmt("Cannot load test source file %s", fileName)
+		return false, err
+	}
+
+	newFileName, err := fileHandling.SaveSourceFile(testSourceFile)
+	if err != nil {
+		log.DebugFmt("Cannot save test source file %s", fileName)
+		return false, err
+	}
+
+	out, err := executer.TestRunFromSource(input, newFileName)
 	if err != nil {
 		return false, err
 	}

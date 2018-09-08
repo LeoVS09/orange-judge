@@ -73,16 +73,17 @@ function testRun(){
 
         req.write(JSON.stringify({
             problemId: "3",
-            code: `#include <iostream>
-                    using namespace std;
-                    
-                    int main()
-                    {
-                        int a, b, c;
-                        cin >> a >> b >> c;
-                        cout << a + b + c << endl;
-                        return 0;
-                    }`
+            code:
+`#include <iostream>
+using namespace std;
+    
+int main()
+{
+    int a, b, c;
+    cin >> a >> b >> c;
+    cout << a + b + c << endl;
+    return 0;
+}`
         }));
 
         req.end()

@@ -2,16 +2,57 @@ package fileHandling
 
 import (
 	"io/ioutil"
+	"orange-judge/configuration"
 	"orange-judge/log"
 	"orange-judge/utils"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
-// TODO: this constans must be in config
-const uploadedFilesDir = "uploaded"
-const testFilesDir = "tests"
-const testListFileName = "tests.txt"
+func IsExist(name string) bool {
+	if _, err := os.Stat(name); os.IsNotExist(err) {
+		// folder does not exist
+		return false
+	}
+	return true
+}
+
+func CreateFolder(folder string) error {
+	log.DebugFmt("Create folder %s", folder)
+	return os.MkdirAll(folder, os.ModePerm)
+}
+
+func ClearFolder(folder string) error {
+	d, err := os.Open(folder)
+	if err != nil {
+		log.DebugFmt("Cannot open for clear folder %s", folder)
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		var filename = filepath.Join(folder, name)
+		log.DebugFmt("Remove %s", filename)
+		err = os.Remove(filename)
+		if err != nil {
+			log.DebugFmt("Cannot remove %s", filename)
+			return err
+		}
+	}
+	return nil
+}
+
+func CreateOrClearFolder(folder string) error {
+	if IsExist(folder) {
+		return ClearFolder(folder)
+	}
+	return CreateFolder(folder)
+}
 
 func SaveUploaded(dir, extension string, body []byte) (string, error) {
 	var name = utils.GenerateHash(5)
@@ -20,15 +61,24 @@ func SaveUploaded(dir, extension string, body []byte) (string, error) {
 }
 
 func SaveSourceFile(body []byte) (string, error) {
-	return SaveUploaded(uploadedFilesDir, "cpp", body)
+	var config, err = configuration.GetConfigData()
+	log.Check("Configuration error:", err)
+
+	return SaveUploaded(config.Directories.Uploaded, "cpp", body)
 }
 
 func SaveTestFile(body []byte) (string, error) {
-	return SaveUploaded(testFilesDir, "txt", body)
+	var config, err = configuration.GetConfigData()
+	log.Check("Configuration error:", err)
+
+	return SaveUploaded(config.Directories.Test, "txt", body)
 }
 
 func GetTest(fileName string) ([]string, error) {
-	var data, err = LoadFile(path.Join(testFilesDir, fileName+".txt"))
+	var config, err = configuration.GetConfigData()
+	log.Check("Configuration error:", err)
+
+	data, err := LoadFile(path.Join(config.Directories.Test, fileName+".txt"))
 	if err != nil {
 		log.DebugFmt("Cannot read test file")
 		return nil, err
@@ -55,7 +105,10 @@ func SaveFile(name string, body []byte) error {
 }
 
 func GetTestsList() ([]string, error) {
-	testListData, err := LoadFile(path.Join(testFilesDir, testListFileName))
+	var config, err = configuration.GetConfigData()
+	log.Check("Configuration error:", err)
+
+	testListData, err := LoadFile(config.TestListFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -68,37 +121,33 @@ func GetTestsList() ([]string, error) {
 		return nil, err
 	}
 
-	log.DebugFmt("List of tests %v", result)
-	log.DebugFmt("List of tests length: %v", len(result))
 	if len(result) == 1 && (result[0] == "" || result[0] == "\n" || result[0] == "\t" || result[0] == "\r" || result[0] == "\t\r") {
 		log.Debug("Return default value")
 		return make([]string, 0), nil
-	}
-	if len(result) > 0 {
-		log.DebugFmt("First test length: %v", len(result[0]))
 	}
 
 	return result, nil
 }
 
 func SaveTestList(list []string) error {
-	log.DebugFmt("List of test length: %v", len(list))
+	var config, err = configuration.GetConfigData()
+	log.Check("Configuration error:", err)
+
 	var data = strings.Join(list, "\n")
-	log.DebugFmt("List of test value: %v", data)
-	return SaveFile(path.Join(testFilesDir, testListFileName), []byte(data))
+
+	return SaveFile(config.TestListFileName, []byte(data))
 }
 
 func AddTestToList(name string) error {
+
 	var list, err = GetTestsList()
 	if err != nil {
 		log.DebugFmt("Cannot load file with list of tests\n%s", err.Error())
 		return err
 	}
-	log.DebugFmt("List of test length: %v", len(list))
 
 	var resultList = append(list, name)
 
-	log.DebugFmt("List of test length: %v", len(resultList))
 	err = SaveTestList(resultList)
 	if err != nil {
 		log.DebugFmt("Cannot save file with list of tests\n%s", err.Error())
@@ -107,5 +156,8 @@ func AddTestToList(name string) error {
 }
 
 func ClearTestList() error {
-	return SaveFile(path.Join(testFilesDir, testListFileName), []byte(""))
+	var config, err = configuration.GetConfigData()
+	log.Check("Configuration error:", err)
+
+	return SaveFile(config.TestListFileName, []byte(""))
 }

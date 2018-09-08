@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-// TODO: this constans must be in config
-const compiledFilesDir = "compiled"
-const uploadedFilesDir = "uploaded"
-
 func TestRunFromSource(input, inputFileName string) (*bytes.Buffer, error) {
 	return compileAndRun(inputFileName, func() (*bytes.Buffer, error) {
 		return testRun(input, inputFileName)

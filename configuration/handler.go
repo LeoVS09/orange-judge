@@ -9,10 +9,12 @@ import (
 	"time"
 )
 
-func Read(fileName string, delay time.Duration) *atomic.Value {
-	var store atomic.Value
+var configStore atomic.Value
+
+func Read(fileName string, delay time.Duration) {
+
 	var config ConfigFile
-	err := readSourcePermanently(fileName, &store, delay, func(data []byte) (interface{}, error) {
+	err := readSourcePermanently(fileName, &configStore, delay, func(data []byte) (interface{}, error) {
 		err := json.Unmarshal(data, &config)
 		if err != nil {
 			log.Error("Error parse source file", err)
@@ -20,10 +22,9 @@ func Read(fileName string, delay time.Duration) *atomic.Value {
 		return &config, err
 	})
 	log.Check("Cannot read config", err)
-	return &store
 }
 
-func ToConfigData(configStore *atomic.Value) (*ConfigFile, error) {
+func GetConfigData() (*ConfigFile, error) {
 	configData, ok := configStore.Load().(*ConfigFile)
 	if ok == true {
 		return configData, nil
