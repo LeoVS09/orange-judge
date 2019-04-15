@@ -4,6 +4,5 @@ test-uploaded.cpp
 test-uploaded.exe
 /.idea
 compiled/
-tests/
+
 uploaded/
-testsLIst.txt

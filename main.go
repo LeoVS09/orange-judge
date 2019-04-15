@@ -82,7 +82,7 @@ func configureLogging(env configuration.Environment) {
 func createOrClearWorkFolders(config *configuration.ConfigFile) error {
 	var names = [...]string{config.Directories.Compiled, config.Directories.Uploaded, config.Directories.Test}
 	for _, name := range names {
-		var err = fileHandling.CreateOrClearFolder(name)
+		var err = fileHandling.CreateIfNotExistFolder(name)
 		if err != nil {
 			log.DebugFmt("Cannot create or clear folder: %s", name)
 			return err
@@ -90,11 +90,11 @@ func createOrClearWorkFolders(config *configuration.ConfigFile) error {
 	}
 
 	if fileHandling.IsExist(config.TestListFileName) {
-		var err = fileHandling.ClearTestList()
-		if err != nil {
-			log.DebugFmt("Cannot clear tests list file %s", config.TestListFileName)
-			return err
-		}
+		//var err = fileHandling.ClearTestList()
+		//if err != nil {
+		//	log.DebugFmt("Cannot clear tests list file %s", config.TestListFileName)
+		//	return err
+		//}
 		return nil
 	}
 
@@ -104,14 +104,13 @@ func createOrClearWorkFolders(config *configuration.ConfigFile) error {
 		return err
 	}
 
-	f.Close()
-	return nil
+	return f.Close()
 }
 
 func testCompiler() (bool, error) {
 	log.Debug("Start test compiler environment...")
-	const input = "1 2 3"
-	const output = "3 2 1"
+	const input = "2 3"
+	const output = "0"
 	const fileName = "test.cpp"
 
 	var testSourceFile, err = fileHandling.LoadFile(fileName)

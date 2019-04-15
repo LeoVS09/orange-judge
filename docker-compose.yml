@@ -1,0 +1,11 @@
+version: "3.5"
+
+services:
+
+  orange-judge:
+    image: orange-judge/0.1.0
+    container_name: orange-judge
+    ports:
+      - 3010:3010
+    volumes:
+      - .:/go/src/orange-judge/.

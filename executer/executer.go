@@ -57,7 +57,7 @@ func CompileAndTest(fileName string) (bool, int, error) {
 		log.DebugFmt("Cannot load list of tests\n%s", err.Error())
 		return false, 0, err
 	}
-	log.DebugFmt("List of tests:\n%s", testNames)
+	log.DebugFmt("List of tests:%v", testNames)
 
 	for i, testName := range testNames {
 		testData, err := fileHandling.GetTest(testName)

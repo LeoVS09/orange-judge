@@ -10,4 +10,4 @@ RUN go build -o server -v main.go
 
 EXPOSE 3010
 
-CMD ["/go/src/orange-judge/server",  "-d", "-tc=false"]
+CMD ["./server",  "-d", "-tc=false"]

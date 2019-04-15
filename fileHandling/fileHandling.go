@@ -1,6 +1,7 @@
 package fileHandling
 
 import (
+	"fmt"
 	"io/ioutil"
 	"orange-judge/configuration"
 	"orange-judge/log"
@@ -50,6 +51,13 @@ func ClearFolder(folder string) error {
 func CreateOrClearFolder(folder string) error {
 	if IsExist(folder) {
 		return ClearFolder(folder)
+	}
+	return CreateFolder(folder)
+}
+
+func CreateIfNotExistFolder(folder string) error {
+	if IsExist(folder) {
+		return nil
 	}
 	return CreateFolder(folder)
 }
@@ -104,6 +112,22 @@ func SaveFile(name string, body []byte) error {
 	return ioutil.WriteFile(name, body, 0600)
 }
 
+func escapeString(str string) string {
+	if len(str) == 0 {
+		return ""
+	}
+
+	var result = ""
+
+	for _, a := range str {
+		if a != '\n' && a != '\t' && a != '\r' {
+			result += string(a)
+		}
+	}
+
+	return result
+}
+
 func GetTestsList() ([]string, error) {
 	var config, err = configuration.GetConfigData()
 	log.Check("Configuration error:", err)
@@ -115,15 +139,19 @@ func GetTestsList() ([]string, error) {
 	log.DebugFmt("List of tests names was read")
 
 	var testListString = utils.BytesToString(testListData)
+	fmt.Printf("testListString: %s\n", testListString)
 
-	result, err := strings.Split(testListString, "\n"), nil
+	testList, err := strings.Split(testListString, "\n"), nil
 	if err != nil {
 		return nil, err
 	}
 
-	if len(result) == 1 && (result[0] == "" || result[0] == "\n" || result[0] == "\t" || result[0] == "\r" || result[0] == "\t\r") {
-		log.Debug("Return default value")
-		return make([]string, 0), nil
+	var result []string
+	fmt.Printf("Test in file: %v\n", len(testList))
+
+	for _, testName := range testList {
+		fmt.Printf("Test name in file: %s\n", testName)
+		result = append(result, escapeString(testName))
 	}
 
 	return result, nil
