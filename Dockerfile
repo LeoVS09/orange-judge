@@ -1,13 +1,17 @@
-FROM golang:1.11-stretch
+FROM golang:1.12.4-stretch
 
 WORKDIR /go/src/orange-judge
 
 RUN go get github.com/fatih/color
-ADD . .
+COPY . .
+
 RUN go get -v ./...
 
-RUN go build -o server -v main.go
+RUN go build -o server -v main.go && \
+    chmod +x server
 
 EXPOSE 3010
 
-CMD ["./server",  "-d", "-tc=false"]
+#ENTRYPOINT ["./docker-entrypoint.sh"]
+
+CMD ["/bin/bash", "./server",  "-d"]
