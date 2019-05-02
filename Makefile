@@ -28,7 +28,7 @@ clean:
 # ---------------------------------------------------------------------------------------------------------------------
 
 build:
-	go build -o server.exe -v main.go
+	go build -o server -v main.go
 
 start:
 	./server -d

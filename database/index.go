@@ -19,37 +19,39 @@ func InitClient() *graphql.Client {
 	return client
 }
 
-type ProblemData struct {
-	Problem struct {
+type Problem struct {
+	NodeId string
+	Id     string
+
+	InputType struct {
 		NodeId string
 		Id     string
+		name   string
+	}
 
-		InputType struct {
+	OutputType struct {
+		NodeId string
+		Id     string
+		name   string
+	}
+
+	LimitTime   int
+	LimitMemory int
+
+	Tests struct {
+		Nodes []struct {
 			NodeId string
 			Id     string
-			name   string
-		}
-
-		OutputType struct {
-			NodeId string
-			Id     string
-			name   string
-		}
-
-		LimitTime   int
-		LimitMemory int
-
-		Tests struct {
-			Nodes []struct {
-				NodeId string
-				Id     string
-				Index  int
-				Input  string
-				Output string
-				Public bool
-			}
+			Index  int
+			Input  string
+			Output string
+			Public bool
 		}
 	}
+}
+
+type ProblemData struct {
+	Problem Problem
 }
 
 type Test struct {
@@ -93,7 +95,8 @@ const problemDataQuery = `
 		}
 	`
 
-func GetProblemData(client *graphql.Client, id string) (error, string, string, []Test) {
+// TODO: use another problem structure for return, without tests inside
+func GetProblemData(client *graphql.Client, id string) (*Problem, []Test, error) {
 
 	var req = graphql.NewRequest(problemDataQuery)
 	req.Var("id", id)
@@ -106,7 +109,7 @@ func GetProblemData(client *graphql.Client, id string) (error, string, string, [
 	err := client.Run(ctx, req, &respData)
 	if err != nil {
 		log.WarningFmt("Error when run graphql request %v", err)
-		return err, "", "", []Test{}
+		return nil, []Test{}, err
 	}
 
 	log.DebugFmt("Response graphql: %v", respData)
@@ -133,5 +136,5 @@ func GetProblemData(client *graphql.Client, id string) (error, string, string, [
 		log.DebugFmt("Test [%v]: %v", i, test)
 	}
 
-	return nil, input, output, resultTests
+	return &problem, resultTests, nil
 }

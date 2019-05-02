@@ -4,5 +4,6 @@ test-uploaded.cpp
 test-uploaded.exe
 /.idea
 compiled/
+oar
 
 uploaded/

@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"orange-judge/database"
-	"orange-judge/executer"
 	"orange-judge/fileHandling"
 	"orange-judge/log"
 )
@@ -21,9 +20,6 @@ func SetHandlers() {
 	http.HandleFunc("/run", runHandler)
 
 	http.HandleFunc("/test/upload", testUploadHandler)
-
-	http.HandleFunc("/oar", oarHandler)
-
 }
 
 func ListenAndServe(port int) error {
@@ -68,6 +64,7 @@ type runProgramResponseBody struct {
 	IsAllTestsSuccessful    bool   `json:"isAllTestsSuccessful"`
 	FailedTest              int    `json:"failedTest"`
 	IsCompilationSuccessful bool   `json:"isCompilationSuccessful"`
+	StatusCode              int    `json:"status"`
 }
 
 func requestBodyParse(requestBody io.ReadCloser, v interface{}) error {
@@ -125,35 +122,4 @@ func testUploadHandler(w http.ResponseWriter, r *http.Request) {
 	log.Panic("Cannot add test to list", err)
 
 	result.IsSuccessfulAdded = true
-}
-
-const input = "input.txt"
-const output = "output.txt"
-const errorFile = "error.txt"
-
-func oarHandler(w http.ResponseWriter, r *http.Request) {
-	log.DebugFmt("run oar handler request: %s", r.URL.Path)
-
-	const fileName = "test-uploaded-for-oar"
-
-	var body = r.FormValue("body")
-
-	var err = fileHandling.SaveFile(fileName+".cpp", []byte(body))
-	log.Panic("Error save uploaded file", err)
-
-	_, err = executer.RunFromSourceWithOAR(fileName, input, output, errorFile)
-	log.Panic("Error when compile and run test program", err)
-
-	http.Redirect(w, r, "/oar/result", http.StatusFound)
-}
-
-func oarResultHandler(w http.ResponseWriter, r *http.Request) {
-	var inputResult, err = fileHandling.LoadFile(input)
-	log.Panic("Cannot read input file", err)
-	outputResult, err := fileHandling.LoadFile(output)
-	log.Panic("Cannot read output file", err)
-	errorResult, err := fileHandling.LoadFile(errorFile)
-	log.Panic("Cannot read error file", err)
-
-	fmt.Fprintf(w, "INPUT: %s\nOUPUT: %s\nERROR :%s", inputResult, outputResult, errorResult)
 }

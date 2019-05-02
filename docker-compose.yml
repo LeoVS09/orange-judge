@@ -5,6 +5,8 @@ services:
   orange-judge:
     image: orange-judge/0.1.0
     container_name: orange-judge
+    security_opt:
+      - seccomp:unconfined
     ports:
       - 3010:3010
     volumes:

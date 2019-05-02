@@ -10,39 +10,27 @@ import (
 	"strings"
 )
 
-func TestRunFromSource(input, inputFileName string) (*bytes.Buffer, error) {
-	return compileAndRun(inputFileName, func() (*bytes.Buffer, error) {
-		return testRun(input, inputFileName)
-	})
-}
-
-func RunFromSourceWithOAR(inputFileName string, input string, output string, errorFile string) (*bytes.Buffer, error) {
-	return compileAndRun(inputFileName, func() (*bytes.Buffer, error) {
-		return RunWithOAR(inputFileName, input, output, errorFile)
-	})
-}
-
-func RunFromSource(inputFileName string, input string) (*bytes.Buffer, error) {
+func RunFromSourceWithOAR(inputFileName string, input string) (*bytes.Buffer, int, error) {
 	var reader = *strings.NewReader(input)
-	var result io.Reader = &reader
-	return compileAndRun(inputFileName, func() (*bytes.Buffer, error) {
-		return Run(inputFileName, &result)
+	var in io.Reader = &reader
+	return compileAndRun(inputFileName, func() (*bytes.Buffer, int, error) {
+		return RunWithOAR(inputFileName, &in)
 	})
 }
 
-func TestProgram(inputFileName string, input string, outputResult string) (bool, error) {
+func TestProgram(inputFileName string, input string, outputResult string) (bool, int, error) {
 	var reader = *strings.NewReader(input)
 	var inputData io.Reader = &reader
-	var outputData, err = Run(inputFileName, &inputData)
+	var outputData, status, err = RunWithOAR(inputFileName, &inputData)
 	if err != nil {
 		log.DebugFmt("Cannot run file %s, with input: %s", inputFileName, input)
-		return false, err
+		return false, status, err
 	}
 
 	var output = utils.RemoveUnnecessarySymbols(outputData.String())
 	var result = output == outputResult
 	log.DebugFmt("Result of compare test (%s) with real result (%s): %v", outputData, outputResult, result)
-	return result, nil
+	return result, status, nil
 }
 
 type ExecutionStage int
@@ -56,6 +44,7 @@ type ExecutionError struct {
 	Stage     ExecutionStage
 	TestIndex int
 	RealError error
+	Status    int
 }
 
 func (e ExecutionError) Error() string {
@@ -77,6 +66,7 @@ func CompileAndTest(fileName string, tests []database.Test) (bool, int, error) {
 			Stage:     Compilation,
 			TestIndex: 0,
 			RealError: err,
+			Status:    -1,
 		}
 	}
 	log.DebugFmt("Compiled file: %s\nOutput of compiler:\n%s", fileName, out.String())
@@ -85,13 +75,14 @@ func CompileAndTest(fileName string, tests []database.Test) (bool, int, error) {
 		log.DebugFmt("Test %v:\n%v", i, test)
 
 		var input, output = test.Input, test.Output
-		resultOfTest, err := TestProgram(fileName, input, output)
-		if err != nil {
+		resultOfTest, status, err := TestProgram(fileName, input, output)
+		if err != nil || status != 0 {
 			log.DebugFmt("Error when test %s, on test:%s", fileName, test.Id)
 			return false, 0, ExecutionError{
 				Stage:     Testing,
 				TestIndex: i,
 				RealError: err,
+				Status:    status,
 			}
 		}
 		log.DebugFmt("Result of test %v: %v", i, resultOfTest)
@@ -104,20 +95,20 @@ func CompileAndTest(fileName string, tests []database.Test) (bool, int, error) {
 	return true, 0, nil
 }
 
-func compileAndRun(fileName string, runner func() (*bytes.Buffer, error)) (*bytes.Buffer, error) {
+func compileAndRun(fileName string, runner func() (*bytes.Buffer, int, error)) (*bytes.Buffer, int, error) {
 	var out, err = CompileFrom(fileName)
 	if err != nil {
 		log.DebugFmt("Cannot compile %s\nOutput of compiler:\n%s", fileName, out.String())
-		return out, err
+		return out, 0, err
 	}
 	log.DebugFmt("Compiled file: %s\nOutput of compiler:\n%s", fileName, out.String())
 
-	out, err = runner()
+	out, status, err := runner()
 	if err != nil {
 		log.DebugFmt("Cannot run file: %s\nOutput of program:\n%s", fileName, out.String())
-		return out, err
+		return out, status, err
 	}
 	log.DebugFmt("Was run file: %s\nOutput of program:\n%s", fileName, out.String())
 
-	return out, nil
+	return out, status, nil
 }

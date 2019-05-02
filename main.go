@@ -10,7 +10,6 @@ import (
 	"orange-judge/log"
 	"orange-judge/router"
 	"orange-judge/utils"
-	//"orange-judge/database"
 	"os"
 	"time"
 )
@@ -53,10 +52,6 @@ func main() {
 	} else {
 		configureLogging(configuration.Production)
 	}
-
-	//var databaseClient = database.InitClient()
-	//err, _, _, _ /*, input, output, tests */ = database.GetProblemData(databaseClient, "0725c400-6b68-11e9-a88c-6b9939fdaf4d")
-	//log.Check("Error when get problem data", err)
 
 	err = router.ListenAndServe(config.Port)
 	log.Check("Error serving", err)
@@ -130,9 +125,13 @@ func testCompiler() (bool, error) {
 		return false, err
 	}
 
-	out, err := executer.TestRunFromSource(input, newFileName)
+	out, status, err := executer.RunFromSourceWithOAR(newFileName, input)
 	if err != nil {
 		return false, err
+	}
+
+	if status != 0 {
+		log.LogFmt("Not successful exit code: %v", status)
 	}
 
 	var result = utils.RemoveUnnecessarySymbols(out.String())
