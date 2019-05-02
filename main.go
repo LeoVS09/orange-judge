@@ -10,6 +10,7 @@ import (
 	"orange-judge/log"
 	"orange-judge/router"
 	"orange-judge/utils"
+	//"orange-judge/database"
 	"os"
 	"time"
 )
@@ -52,6 +53,10 @@ func main() {
 	} else {
 		configureLogging(configuration.Production)
 	}
+
+	//var databaseClient = database.InitClient()
+	//err, _, _, _ /*, input, output, tests */ = database.GetProblemData(databaseClient, "0725c400-6b68-11e9-a88c-6b9939fdaf4d")
+	//log.Check("Error when get problem data", err)
 
 	err = router.ListenAndServe(config.Port)
 	log.Check("Error serving", err)
@@ -110,7 +115,7 @@ func createOrClearWorkFolders(config *configuration.ConfigFile) error {
 func testCompiler() (bool, error) {
 	log.Debug("Start test compiler environment...")
 	const input = "2 3"
-	const output = "0"
+	const output = "6"
 	const fileName = "test.cpp"
 
 	var testSourceFile, err = fileHandling.LoadFile(fileName)

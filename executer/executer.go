@@ -2,8 +2,9 @@ package executer
 
 import (
 	"bytes"
+	"fmt"
 	"io"
-	"orange-judge/fileHandling"
+	"orange-judge/database"
 	"orange-judge/log"
 	"orange-judge/utils"
 	"strings"
@@ -29,7 +30,7 @@ func RunFromSource(inputFileName string, input string) (*bytes.Buffer, error) {
 	})
 }
 
-func RunAndTest(inputFileName string, input string, outputResult string) (bool, error) {
+func TestProgram(inputFileName string, input string, outputResult string) (bool, error) {
 	var reader = *strings.NewReader(input)
 	var inputData io.Reader = &reader
 	var outputData, err = Run(inputFileName, &inputData)
@@ -44,34 +45,54 @@ func RunAndTest(inputFileName string, input string, outputResult string) (bool, 
 	return result, nil
 }
 
-func CompileAndTest(fileName string) (bool, int, error) {
+type ExecutionStage int
+
+const (
+	Compilation ExecutionStage = 0
+	Testing     ExecutionStage = 1
+)
+
+type ExecutionError struct {
+	Stage     ExecutionStage
+	TestIndex int
+	RealError error
+}
+
+func (e ExecutionError) Error() string {
+	switch e.Stage {
+	case Compilation:
+		return fmt.Sprintf("Error on compiltaion: %v", e.RealError)
+	case Testing:
+		return fmt.Sprintf("Error on testing: %v", e.RealError)
+	}
+
+	return e.RealError.Error()
+}
+
+func CompileAndTest(fileName string, tests []database.Test) (bool, int, error) {
 	var out, err = CompileFrom(fileName)
 	if err != nil {
-		log.DebugFmt("Cannot compile %s, compiler return:\n%s", fileName, out.String())
-		return false, 0, err
+		log.DebugFmt("Cannot compile %s, compiler return:\n%s", fileName, err.Error())
+		return false, 0, ExecutionError{
+			Stage:     Compilation,
+			TestIndex: 0,
+			RealError: err,
+		}
 	}
 	log.DebugFmt("Compiled file: %s\nOutput of compiler:\n%s", fileName, out.String())
 
-	testNames, err := fileHandling.GetTestsList()
-	if err != nil {
-		log.DebugFmt("Cannot load list of tests\n%s", err.Error())
-		return false, 0, err
-	}
-	log.DebugFmt("List of tests:%v", testNames)
+	for i, test := range tests {
+		log.DebugFmt("Test %v:\n%v", i, test)
 
-	for i, testName := range testNames {
-		testData, err := fileHandling.GetTest(testName)
+		var input, output = test.Input, test.Output
+		resultOfTest, err := TestProgram(fileName, input, output)
 		if err != nil {
-			log.DebugFmt("Error get test: %s", testName)
-			return false, 0, err
-		}
-		log.DebugFmt("Test %v:\n%v", i, testData)
-
-		var input, output = testData[0], testData[1]
-		resultOfTest, err := RunAndTest(fileName, input, output)
-		if err != nil {
-			log.DebugFmt("Error when test %s, on test:%s", fileName, testName)
-			return false, 0, err
+			log.DebugFmt("Error when test %s, on test:%s", fileName, test.Id)
+			return false, 0, ExecutionError{
+				Stage:     Testing,
+				TestIndex: i,
+				RealError: err,
+			}
 		}
 		log.DebugFmt("Result of test %v: %v", i, resultOfTest)
 

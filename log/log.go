@@ -49,13 +49,13 @@ type logger struct {
 
 func Check(id string, err error) {
 	if err != nil {
-		baselog.Fatal(notColored(id), err) // TODO: fix coloring, change to red
+		baselog.Fatal(notColored(id+"\n%v\n"), err) // TODO: fix coloring, change to red
 	}
 }
 
 func Panic(id string, err error) {
 	if err != nil {
-		baselog.Println(notColored(id)) // TODO: fix coloring, change to red
+		baselog.Printf(notColored(id+"\n%v\n"), err) // TODO: fix coloring, change to red
 		panic(err)
 	}
 }

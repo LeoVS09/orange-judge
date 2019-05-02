@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"orange-judge/database"
 	"orange-judge/executer"
 	"orange-judge/fileHandling"
 	"orange-judge/log"
 )
+
+var databaseClient = database.InitClient()
 
 func SetHandlers() {
 	http.HandleFunc("/", indexHandler)
@@ -61,9 +64,10 @@ type runProgramRequestBody struct {
 }
 
 type runProgramResponseBody struct {
-	ProblemId            string `json:"problemId"`
-	IsAllTestsSuccessful bool   `json:"isAllTestsSuccessful"`
-	FailedTest           int    `json:"failedTest"`
+	ProblemId               string `json:"problemId"`
+	IsAllTestsSuccessful    bool   `json:"isAllTestsSuccessful"`
+	FailedTest              int    `json:"failedTest"`
+	IsCompilationSuccessful bool   `json:"isCompilationSuccessful"`
 }
 
 func requestBodyParse(requestBody io.ReadCloser, v interface{}) error {
@@ -73,56 +77,6 @@ func requestBodyParse(requestBody io.ReadCloser, v interface{}) error {
 	log.DebugFmt("Request data: %s", body)
 
 	return json.Unmarshal([]byte(body), v)
-}
-
-func runHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		if r := recover(); r != nil {
-			var err, ok = r.(error)
-			if ok == false {
-				http.Error(w, "Unexpected error", http.StatusInternalServerError)
-				return
-			}
-
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	}()
-
-	log.DebugFmt("run handler request: %s", r.URL.Path)
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	var requestBody runProgramRequestBody
-	var err = requestBodyParse(r.Body, &requestBody)
-	log.Panic("Cannot parse request data", err)
-
-	log.DebugFmt("Code of program:\n%s", requestBody.Code)
-
-	fileName, err := fileHandling.SaveSourceFile([]byte(requestBody.Code))
-	log.Panic("Error save uploaded file", err)
-
-	isTestsSuccessful, testNumber, err := executer.CompileAndTest(fileName)
-	log.Panic("Error when compile, run and test program", err)
-
-	var result = runProgramResponseBody{
-		ProblemId:            requestBody.ProblemId,
-		IsAllTestsSuccessful: false,
-		FailedTest:           0,
-	}
-	defer func() {
-		log.DebugFmt("Response to client: %s", result)
-		responseBody, err := json.Marshal(result)
-		log.Panic("Cannot marshal result for response", err)
-
-		fmt.Fprintf(w, "%s", responseBody)
-	}()
-
-	if isTestsSuccessful {
-		result.IsAllTestsSuccessful = true
-		return
-	}
-
-	result.FailedTest = testNumber
 }
 
 type testUploadRequestBody struct {
